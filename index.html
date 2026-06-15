@@ -460,5 +460,57 @@ function showMonthDetail(m){
     if(OPEN.has(s)){openAmt+=d.amount;openCnt+=d.count;}
     if(s==='Rejected'){rejAmt+=d.amount;rejCnt+=d.count;}
   }
+document.getElementById('detailContent').innerHTML=`
+    <div class="dh">
+      <div class="dh-period">${m.month}</div>
+      <div class="dh-sub">${m.claims.toLocaleString()} total claims &mdash; ${col}% collection</div>
+    </div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px;">
+      <div class="kpi-card"><div class="kpi-label">Billed</div><div class="kpi-val">${fmt(m.billed)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Paid</div><div class="kpi-val" style="color:#0F6E56;">${fmt(m.paid)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Outstanding</div><div class="kpi-val" style="color:#BA7517;">${fmt(openAmt)}</div><div class="kpi-sub">${openCnt} claims</div></div>
+      ${rejCnt?`<div class="kpi-card"><div class="kpi-label">Rejected</div><div class="kpi-val" style="color:#A32D2D;">${fmt(rejAmt)}</div><div class="kpi-sub">${rejCnt} claims</div></div>`:''}
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">Status Breakdown</div>
+    <div class="sb-grid">${sbHTML(m.byStatus)}</div>
+  `;
+  document.getElementById('mainView').style.display='none';
+  document.getElementById('detailView').style.display='block';
+}
+
+function showWeekDetail(idx){
+  const w=_wStore[idx];
+  if(!w)return;
+  const col=w.billed?(w.paid/w.billed*100).toFixed(1):0;
+  let openAmt=0,openCnt=0,rejAmt=0,rejCnt=0;
+  for(const[s,d]of Object.entries(w.byStatus||{})){
+    if(OPEN.has(s)){openAmt+=d.amount;openCnt+=d.count;}
+    if(s==='Rejected'){rejAmt+=d.amount;rejCnt+=d.count;}
+  }
   document.getElementById('detailContent').innerHTML=`
-    <div class="dh"><div class="dh-period">${m.month}</div><div class="dh-sub">${m.claims.toLocaleString()} total claims</di
+    <div class="dh">
+      <div class="dh-period">Week of ${w.label}</div>
+      <div class="dh-sub">${w.claims.toLocaleString()} total claims &mdash; ${col}% collection</div>
+    </div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px;">
+      <div class="kpi-card"><div class="kpi-label">Billed</div><div class="kpi-val">${fmt(w.billed)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Paid</div><div class="kpi-val" style="color:#0F6E56;">${fmt(w.paid)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Outstanding</div><div class="kpi-val" style="color:#BA7517;">${fmt(openAmt)}</div><div class="kpi-sub">${openCnt} claims</div></div>
+      ${rejCnt?`<div class="kpi-card"><div class="kpi-label">Rejected</div><div class="kpi-val" style="color:#A32D2D;">${fmt(rejAmt)}</div><div class="kpi-sub">${rejCnt} claims</div></div>`:''}
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">Status Breakdown</div>
+    <div class="sb-grid">${sbHTML(w.byStatus)}</div>
+  `;
+  document.getElementById('mainView').style.display='none';
+  document.getElementById('detailView').style.display='block';
+}
+
+function closeDetail(){
+  document.getElementById('detailView').style.display='none';
+  document.getElementById('mainView').style.display='block';
+}
+
+loadData();
+</script>
+</body>
+</html>
