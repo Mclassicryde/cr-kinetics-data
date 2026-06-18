@@ -405,7 +405,7 @@ function renderAging(aging){
     const pct=maxA?d.amount/maxA*100:0;
     const warnBadge=b.warn&&d.count?`<span style="font-size:10px;background:#fef3c7;color:#78350f;padding:1px 7px;border-radius:8px;font-weight:700;margin-left:6px;">At risk</span>`:'';
     const clickable=hasTrips&&d.count>0;
-    return`<div class="aging-row${clickable?'':''}" style="${clickable?'cursor:pointer;':''}" ${clickable?`onclick="openAgingModal('${b.key}',${JSON.stringify(b.label)},${JSON.stringify(b.color)})"`:''}>
+    return`<div class="aging-row" style="${clickable?'cursor:pointer;':''}" ${clickable?`onclick="openAgingModal('${b.key}','${b.label}','${b.color}')"`:''}>
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
         <span style="display:flex;align-items:center;">${b.label}${warnBadge}</span>
         <span style="font-weight:600;color:${b.color};">${fmt(d.amount)} <span style="font-size:10px;color:#9ca3af;">(${d.count})</span></span>
@@ -505,4 +505,4 @@ function renderWeekly(weeks){
       <div class="wr"><span class="wl">Billed</span><span class="wv">${fmt(w.billed)}</span></div>
       <div class="wr"><span class="wl">Paid</span><span class="wv" style="color:${w.paid>0?'#0F6E56':'#A32D2D'};">${w.paid>0?fmt(w.paid):'$0'}</span></div>
       <div class="wr"><span class="wl">Collection</span><span class="wv" style="color:${+colPct>=99?'#0F6E56':+colPct>0?'#BA7517':'#A32D2D'};">${+colPct>0?colPct+'%':'—'}</span></div>
-      ${issues.le
+      ${issues.length?`<div class="wk-note">${issues.join(' &mi
