@@ -167,7 +167,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#c9a84c;display:inline-block;"></span>Paid</span>
         </div>
         <div style="height:220px;"><canvas id="mChart"></canvas></div>
-        <div style="font-size:11px;color:#9ca3af;margin-top:6px;">Click any bar to drill into that month</div>
+        <div id="chartSubtitle" style="font-size:11px;color:#9ca3af;margin-top:6px;">Click any bar to drill into that month</div>
       </div>
       <div class="card mb20">
         <div class="sl">AR aging buckets</div>
@@ -372,10 +372,75 @@ function render(){
   ];
   document.getElementById('kpiGrid').innerHTML=kpis.map(k=>`<div class="kpi-card"><div class="kpi-accent" style="background:${k.color};"></div><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color};">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
 
-  renderMonthlyChart(fm);
+  renderBarChart(fm, fw);
   renderAging(rawData.aging);
   renderPipeline(a.byStatus,totalC);
   renderWeekly(fw);
+}
+
+function _buildChart(labels, billedData, paidData, onClickFn){
+  if(mChart){mChart.destroy();mChart=null;}
+  mChart=new Chart(document.getElementById('mChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'Billed',data:billedData,backgroundColor:'#0d1b3e',borderRadius:4,borderSkipped:false},
+        {label:'Paid',data:paidData,backgroundColor:'#c9a84c',borderRadius:4,borderSkipped:false},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'#f3f4f6'},ticks:{callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'K':v)}}},
+      onClick:onClickFn?(e,els)=>{if(els.length)onClickFn(els[0].index);}:undefined
+    }
+  });
+}
+
+function renderBarChart(fm, fw){
+  const sub = document.getElementById('chartSubtitle');
+  if(fState.week){
+    // Show 7 days of the selected week, computed from trip-level data
+    const w = rawData.byWeek.find(x=>x.week===fState.week);
+    if(!w){renderMonthlyChart(fm);return;}
+    const monDate = new Date(w.mon+'T12:00:00');
+    const days = [];
+    for(let i=0;i<7;i++){
+      const d = new Date(monDate); d.setDate(d.getDate()+i);
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const yyyy = d.getFullYear();
+      days.push({
+        label: d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),
+        dateKey: mm+'/'+dd+'/'+yyyy,
+        billed:0, paid:0, claims:0
+      });
+    }
+    const dateMap = new Map(days.map(d=>[d.dateKey,d]));
+    for(const m of rawData.byMonth){
+      for(const t of (m.trips||[])){
+        const entry = dateMap.get(t.date);
+        if(entry){entry.billed+=t.charge;entry.paid+=t.payment;entry.claims++;}
+      }
+    }
+    _buildChart(days.map(d=>d.label), days.map(d=>d.billed), days.map(d=>d.paid), null);
+    if(sub) sub.textContent = 'Daily breakdown — '+w.label+' week';
+  } else if(fState.month){
+    // Show weeks within the selected month
+    _mStore = fw;
+    _buildChart(
+      fw.map(w=>'Wk '+w.label),
+      fw.map(w=>w.billed),
+      fw.map(w=>w.paid),
+      (i)=>{ const wi=rawData.byWeek.indexOf(fw[i]); showWeekDetail(wi); }
+    );
+    if(sub) sub.textContent = 'Weekly breakdown — click a bar for week detail';
+  } else {
+    // Default: months (quarter filter already narrows fm)
+    renderMonthlyChart(fm);
+    if(sub) sub.textContent = 'Click any bar to drill into that month';
+  }
 }
 
 function renderMonthlyChart(months){
