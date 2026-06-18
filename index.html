@@ -505,4 +505,104 @@ function renderWeekly(weeks){
       <div class="wr"><span class="wl">Billed</span><span class="wv">${fmt(w.billed)}</span></div>
       <div class="wr"><span class="wl">Paid</span><span class="wv" style="color:${w.paid>0?'#0F6E56':'#A32D2D'};">${w.paid>0?fmt(w.paid):'$0'}</span></div>
       <div class="wr"><span class="wl">Collection</span><span class="wv" style="color:${+colPct>=99?'#0F6E56':+colPct>0?'#BA7517':'#A32D2D'};">${+colPct>0?colPct+'%':'—'}</span></div>
-      ${issues.length?`<div class="wk-note">${issues.join(' &mi
+      ${issues.length?`<div class="wk-note">${issues.join(' &middot; ')}</div>`:''}
+      <div class="click-hint">Click for detail &rarr;</div>
+    </div>`;
+  }).join('');
+
+  // Table: newest first, scroll container shows ~8 rows
+  const sorted=[...weeks].reverse();
+  const colCell=(n,color)=>`<td style="padding:10px 14px;text-align:right;color:${color};font-weight:600;font-variant-numeric:tabular-nums;">${n||'—'}</td>`;
+  document.getElementById('wkTableBody').innerHTML=sorted.map((w,i)=>{
+    const appCnt=(w.byStatus['Approved']||{}).count||0;
+    const rejCnt=(w.byStatus['Rejected']||{}).count||0;
+    const pendCnt=(w.byStatus['Pending']||{}).count||0;
+    const rtbCnt=((w.byStatus['Ready To Bill']||{}).count||0)+((w.byStatus['Ready to Bill']||{}).count||0);
+    const colPct=w.billed?(w.paid/w.billed*100):0;
+    const colColor=colPct>=99?'#0F6E56':colPct>=85?'#BA7517':'#A32D2D';
+    const isRecent=i<8;
+    const bg=isRecent?(i%2===0?'#fff':'#fafafa'):(i%2===0?'#f7f8fc':'#f2f3f8');
+    const borderLeft=isRecent?'3px solid transparent':'3px solid transparent';
+    return`<tr style="background:${bg};border-left:${borderLeft};transition:background 0.12s;" onmouseover="this.style.background='#fffbf0'" onmouseout="this.style.background='${bg}'">
+      <td style="padding:10px 14px;font-weight:${isRecent?'700':'500'};color:${isRecent?'#1a1a2e':'#6b7280'};white-space:nowrap;border-left:3px solid ${isRecent?'#c9a84c':'transparent'};">
+        ${w.label}${isRecent?'':' <span style="font-size:10px;color:#9ca3af;">(older)</span>'}
+      </td>
+      <td style="padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums;color:${isRecent?'#1a1a2e':'#6b7280'};">${w.claims.toLocaleString()}</td>
+      <td style="padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:${isRecent?'#1a1a2e':'#6b7280'};">${fmt(w.billed)}</td>
+      <td style="padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#0F6E56;">${w.paid>0?fmt(w.paid):'—'}</td>
+      <td style="padding:10px 14px;text-align:right;font-weight:700;color:${colColor};">${colPct>0?colPct.toFixed(1)+'%':'—'}</td>
+      ${colCell(appCnt||'','#185FA5')}${colCell(rejCnt||'','#A32D2D')}${colCell(pendCnt||'','#BA7517')}${colCell(rtbCnt||'','#c9a84c')}
+    </tr>`;
+  }).join('');
+  document.getElementById('wkTableMeta').textContent=`${sorted.length} weeks total`;
+  document.getElementById('wkScrollHint').style.display=sorted.length>8?'block':'none';
+}
+
+function sbHTML(byStatus){
+  return Object.entries(byStatus||{}).sort((a,b)=>b[1].count-a[1].count).map(([s,d])=>{
+    const c=SC[s]||'#6b7280';
+    return`<div class="sb-cell" style="border-left:3px solid ${c};"><div class="sb-num" style="color:${c};">${d.count.toLocaleString()}</div><div class="sb-label">${s}</div><div class="sb-amt">${fmt(d.amount)}</div></div>`;
+  }).join('');
+}
+
+function showMonthDetail(m){
+  const col=m.billed?(m.paid/m.billed*100).toFixed(1):0;
+  let openAmt=0,openCnt=0,rejAmt=0,rejCnt=0;
+  for(const[s,d]of Object.entries(m.byStatus||{})){
+    if(OPEN.has(s)){openAmt+=d.amount;openCnt+=d.count;}
+    if(s==='Rejected'){rejAmt+=d.amount;rejCnt+=d.count;}
+  }
+document.getElementById('detailContent').innerHTML=`
+    <div class="dh">
+      <div class="dh-period">${m.month}</div>
+      <div class="dh-sub">${m.claims.toLocaleString()} total claims &mdash; ${col}% collection</div>
+    </div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px;">
+      <div class="kpi-card"><div class="kpi-label">Billed</div><div class="kpi-val">${fmt(m.billed)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Paid</div><div class="kpi-val" style="color:#0F6E56;">${fmt(m.paid)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Outstanding</div><div class="kpi-val" style="color:#BA7517;">${fmt(openAmt)}</div><div class="kpi-sub">${openCnt} claims</div></div>
+      ${rejCnt?`<div class="kpi-card"><div class="kpi-label">Rejected</div><div class="kpi-val" style="color:#A32D2D;">${fmt(rejAmt)}</div><div class="kpi-sub">${rejCnt} claims</div></div>`:''}
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">Status Breakdown</div>
+    <div class="sb-grid">${sbHTML(m.byStatus)}</div>
+  `;
+  document.getElementById('mainView').style.display='none';
+  document.getElementById('detailView').style.display='block';
+}
+
+function showWeekDetail(idx){
+  const w=_wStore[idx];
+  if(!w)return;
+  const col=w.billed?(w.paid/w.billed*100).toFixed(1):0;
+  let openAmt=0,openCnt=0,rejAmt=0,rejCnt=0;
+  for(const[s,d]of Object.entries(w.byStatus||{})){
+    if(OPEN.has(s)){openAmt+=d.amount;openCnt+=d.count;}
+    if(s==='Rejected'){rejAmt+=d.amount;rejCnt+=d.count;}
+  }
+  document.getElementById('detailContent').innerHTML=`
+    <div class="dh">
+      <div class="dh-period">Week of ${w.label}</div>
+      <div class="dh-sub">${w.claims.toLocaleString()} total claims &mdash; ${col}% collection</div>
+    </div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px;">
+      <div class="kpi-card"><div class="kpi-label">Billed</div><div class="kpi-val">${fmt(w.billed)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Paid</div><div class="kpi-val" style="color:#0F6E56;">${fmt(w.paid)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Outstanding</div><div class="kpi-val" style="color:#BA7517;">${fmt(openAmt)}</div><div class="kpi-sub">${openCnt} claims</div></div>
+      ${rejCnt?`<div class="kpi-card"><div class="kpi-label">Rejected</div><div class="kpi-val" style="color:#A32D2D;">${fmt(rejAmt)}</div><div class="kpi-sub">${rejCnt} claims</div></div>`:''}
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">Status Breakdown</div>
+    <div class="sb-grid">${sbHTML(w.byStatus)}</div>
+  `;
+  document.getElementById('mainView').style.display='none';
+  document.getElementById('detailView').style.display='block';
+}
+
+function closeDetail(){
+  document.getElementById('detailView').style.display='none';
+  document.getElementById('mainView').style.display='block';
+}
+
+loadData();
+</script>
+</body>
+</html>
