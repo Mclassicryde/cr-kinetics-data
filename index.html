@@ -93,6 +93,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .modal-warn{background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;margin:12px 22px 0;font-size:12px;color:#78350f;line-height:1.6;flex-shrink:0;}
 .modal-warn strong{display:block;margin-bottom:2px;}
 .modal-body{padding:14px 22px 20px;overflow-y:auto;flex:1;}
+.modal-search{padding:10px 22px;flex-shrink:0;border-bottom:1px solid #f3f4f6;}
+.modal-search input{width:100%;padding:8px 14px 8px 36px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;color:#374151;background:#f9fafb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat 10px center;outline:none;}
+.modal-search input:focus{border-color:#c9a84c;background-color:#fff;}
+.modal-search-count{font-size:11px;color:#9ca3af;margin-top:5px;}
 .trip-tbl{width:100%;border-collapse:collapse;font-size:12px;}
 .trip-tbl th{padding:8px 10px;text-align:left;color:#6b7280;font-weight:700;border-bottom:2px solid #e8eaed;font-size:11px;white-space:nowrap;background:#fff;position:sticky;top:0;}
 .trip-tbl td{padding:7px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle;}
@@ -225,6 +229,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="modal-close" onclick="closeAgingModal()">Close</button>
     </div>
     <div class="modal-warn" id="agingModalWarn" style="display:none;"></div>
+    <div class="modal-search" id="agingModalSearch" style="display:none;">
+      <input type="text" id="agingModalSearchInput" placeholder="Search by claim ID, patient, date or status…" oninput="filterModalRows(this.value)">
+      <div class="modal-search-count" id="agingModalSearchCount"></div>
+    </div>
     <div class="modal-body">
       <div id="agingModalBody"></div>
     </div>
@@ -457,6 +465,9 @@ function openAgingModal(bucketKey,bucketLabel,color){
       <tbody>${rows}</tbody>
     </table>`;
   }
+  document.getElementById('agingModalSearchInput').value='';
+  document.getElementById('agingModalSearchCount').textContent='';
+  document.getElementById('agingModalSearch').style.display=trips.length?'block':'none';
   document.getElementById('agingModal').style.display='flex';
   document.body.style.overflow='hidden';
 }
@@ -512,6 +523,9 @@ function openMonthModal(m){
         <tbody>${rows}</tbody>
       </table>`;
   }
+  document.getElementById('agingModalSearchInput').value='';
+  document.getElementById('agingModalSearchCount').textContent='';
+  document.getElementById('agingModalSearch').style.display=trips.length?'block':'none';
   document.getElementById('agingModal').style.display='flex';
   document.body.style.overflow='hidden';
 }
@@ -651,6 +665,18 @@ function showWeekDetail(idx){
 function closeDetail(){
   document.getElementById('detailView').style.display='none';
   document.getElementById('mainView').style.display='block';
+}
+
+function filterModalRows(q){
+  const rows=document.querySelectorAll('#agingModalBody .trip-tbl tbody tr');
+  const term=q.trim().toLowerCase();
+  let visible=0;
+  rows.forEach(r=>{
+    const show=!term||r.textContent.toLowerCase().includes(term);
+    r.style.display=show?'':'none';
+    if(show)visible++;
+  });
+  document.getElementById('agingModalSearchCount').textContent=term?`${visible} of ${rows.length} trips`:'';
 }
 
 loadData();
