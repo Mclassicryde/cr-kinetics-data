@@ -344,10 +344,12 @@ function render(){
   const fw=getFilteredWeeks();
   const a=fState.week?agg(fw):agg(fm);
 
-  let rangeLabel='Jan 2026 to May 2026';
+  const dataMonths=(rawData.byMonth||[]);
+  const dataYear=dataMonths.length?dataMonths[dataMonths.length-1].month.split(' ')[1]:new Date().getFullYear();
+  let rangeLabel=dataMonths.length?(dataMonths[0].month===dataMonths[dataMonths.length-1].month?dataMonths[0].month:(dataMonths[0].month+' to '+dataMonths[dataMonths.length-1].month)):'All data';
   if(fState.week){const w=rawData.byWeek.find(x=>x.week===fState.week);rangeLabel=w?(w.label+' week'):fState.week;}
   else if(fState.month)rangeLabel=fState.month;
-  else if(fState.quarter)rangeLabel=fState.quarter+' 2026';
+  else if(fState.quarter)rangeLabel=fState.quarter+' '+dataYear;
   document.getElementById('dateRange').textContent=rangeLabel;
 
   const totalB=a.billed,totalP=a.paid,totalC=a.claims;
@@ -449,7 +451,7 @@ function renderMonthlyChart(months){
   mChart=new Chart(document.getElementById('mChart').getContext('2d'),{
     type:'bar',
     data:{
-      labels:months.map(m=>m.month.replace(' 2026',' 26')),
+      labels:months.map(m=>m.month.replace(/ (\d{4})$/,(_,y)=>' '+y.slice(2))),
       datasets:[
         {label:'Billed',data:months.map(m=>m.billed),backgroundColor:'#0d1b3e',borderRadius:4,borderSkipped:false},
         {label:'Paid',data:months.map(m=>m.paid),backgroundColor:'#c9a84c',borderRadius:4,borderSkipped:false},
